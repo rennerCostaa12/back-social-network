@@ -1,0 +1,13 @@
+version: '3.7'
+
+services:
+  mysql:
+    container_name: social-network-mysql
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./.docker/mysql/dbdata:/var/lib/mysql
+    ports:
+      - "3307:3306"
