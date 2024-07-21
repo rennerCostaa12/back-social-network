@@ -3,6 +3,11 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { UsersModule } from './users/users.module';
+import { StatusPostsModule } from './status-posts/status-posts.module';
+import { PostsModule } from './posts/posts.module';
+import { PostsSavesModule } from './posts-saves/posts-saves.module';
+import { CommentsModule } from './comments/comments.module';
 
 @Module({
   imports: [
@@ -16,10 +21,23 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         username: configService.get('DB_USERNAME'),
         password: configService.get('DB_PASSWORD'),
         database: configService.get('DB_NAME'),
-        entities: [],
+        entities: [
+          UsersModule,
+          StatusPostsModule,
+          PostsModule,
+          PostsSavesModule,
+          CommentsModule,
+        ],
+        autoLoadEntities: true,
+        synchronize: true,
       }),
       inject: [ConfigService],
     }),
+    UsersModule,
+    StatusPostsModule,
+    PostsModule,
+    PostsSavesModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
