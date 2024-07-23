@@ -29,7 +29,6 @@ import { CommentsModule } from './comments/comments.module';
           CommentsModule,
         ],
         autoLoadEntities: true,
-        synchronize: true,
       }),
       inject: [ConfigService],
     }),
