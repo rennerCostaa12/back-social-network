@@ -8,6 +8,9 @@ import { StatusPostsModule } from './status-posts/status-posts.module';
 import { PostsModule } from './posts/posts.module';
 import { PostsSavesModule } from './posts-saves/posts-saves.module';
 import { CommentsModule } from './comments/comments.module';
+import { CategoriesEmojisModule } from './categories-emojis/categories-emojis.module';
+import { EmoticonsModule } from './emoticons/emoticons.module';
+import { UsersFollowersModule } from './users-followers/users-followers.module';
 
 @Module({
   imports: [
@@ -27,8 +30,11 @@ import { CommentsModule } from './comments/comments.module';
           PostsModule,
           PostsSavesModule,
           CommentsModule,
+          CategoriesEmojisModule,
+          EmoticonsModule,
+          UsersFollowersModule,
         ],
-        autoLoadEntities: true,
+        autoLoadEntities: true
       }),
       inject: [ConfigService],
     }),
@@ -37,6 +43,9 @@ import { CommentsModule } from './comments/comments.module';
     PostsModule,
     PostsSavesModule,
     CommentsModule,
+    CategoriesEmojisModule,
+    EmoticonsModule,
+    UsersFollowersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
