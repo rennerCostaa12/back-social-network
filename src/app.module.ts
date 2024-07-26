@@ -11,6 +11,7 @@ import { CommentsModule } from './comments/comments.module';
 import { CategoriesEmojisModule } from './categories-emojis/categories-emojis.module';
 import { EmoticonsModule } from './emoticons/emoticons.module';
 import { UsersFollowersModule } from './users-followers/users-followers.module';
+import { EmoticonsDriverModule } from './emoticons-driver/emoticons-driver.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { UsersFollowersModule } from './users-followers/users-followers.module';
           CategoriesEmojisModule,
           EmoticonsModule,
           UsersFollowersModule,
+          EmoticonsDriverModule
         ],
         autoLoadEntities: true
       }),
@@ -46,6 +48,7 @@ import { UsersFollowersModule } from './users-followers/users-followers.module';
     CategoriesEmojisModule,
     EmoticonsModule,
     UsersFollowersModule,
+    EmoticonsDriverModule,
   ],
   controllers: [AppController],
   providers: [AppService],

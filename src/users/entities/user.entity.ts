@@ -3,6 +3,7 @@ import { PostsSave } from 'src/posts-saves/entities/posts-save.entity';
 import { Post } from 'src/posts/entities/post.entity';
 import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { UsersFollower } from 'src/users-followers/entities/users-follower.entity';
+import { EmoticonsDriver } from 'src/emoticons-driver/entities/emoticons-driver.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -41,6 +42,9 @@ export class User {
 
   @OneToMany(() => UsersFollower, (usersFollowrs) => usersFollowrs.followed)
   followers: UsersFollower[];
+
+  @OneToMany(() => EmoticonsDriver, (usersFollowrs) => usersFollowrs.user)
+  emoticons_driver: EmoticonsDriver[];
 
   @Column({
     type: 'datetime',
