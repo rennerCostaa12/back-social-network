@@ -12,6 +12,7 @@ import { CategoriesEmojisModule } from './categories-emojis/categories-emojis.mo
 import { EmoticonsModule } from './emoticons/emoticons.module';
 import { UsersFollowersModule } from './users-followers/users-followers.module';
 import { EmoticonsDriverModule } from './emoticons-driver/emoticons-driver.module';
+import { ReactionsModule } from './reactions/reactions.module';
 
 @Module({
   imports: [
@@ -34,9 +35,10 @@ import { EmoticonsDriverModule } from './emoticons-driver/emoticons-driver.modul
           CategoriesEmojisModule,
           EmoticonsModule,
           UsersFollowersModule,
-          EmoticonsDriverModule
+          EmoticonsDriverModule,
+          ReactionsModule
         ],
-        autoLoadEntities: true
+        autoLoadEntities: true,
       }),
       inject: [ConfigService],
     }),
@@ -49,6 +51,7 @@ import { EmoticonsDriverModule } from './emoticons-driver/emoticons-driver.modul
     EmoticonsModule,
     UsersFollowersModule,
     EmoticonsDriverModule,
+    ReactionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

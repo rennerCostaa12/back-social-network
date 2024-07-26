@@ -1,6 +1,7 @@
-import { PrimaryGeneratedColumn, Column, Entity, ManyToOne } from 'typeorm';
+import { PrimaryGeneratedColumn, Column, Entity, ManyToOne, OneToMany } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { CategoriesEmoji } from 'src/categories-emojis/entities/categories-emoji.entity';
+import { Reaction } from 'src/reactions/entities/reaction.entity';
 
 @Entity({ name: 'emoticons_driver' })
 export class EmoticonsDriver {
@@ -15,6 +16,9 @@ export class EmoticonsDriver {
 
   @ManyToOne(() => CategoriesEmoji, (categories) => categories.emoticons_driver)
   category: CategoriesEmoji;
+
+  @OneToMany(() => Reaction, ((reactions) => reactions.emoticons_driver))
+  reactions: Reaction[];
 
   @Column({
     type: 'timestamp',

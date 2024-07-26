@@ -1,5 +1,6 @@
 import { Comment } from 'src/comments/entities/comment.entity';
 import { PostsSave } from 'src/posts-saves/entities/posts-save.entity';
+import { Reaction } from 'src/reactions/entities/reaction.entity';
 import { StatusPost } from 'src/status-posts/entities/status-post.entity';
 import { User } from 'src/users/entities/user.entity';
 import {
@@ -35,6 +36,9 @@ export class Post {
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];
+
+  @OneToMany(() => Reaction, (reactions) => reactions.post)
+  reactions: Reaction[];
 
   @Column({
     type: 'datetime',

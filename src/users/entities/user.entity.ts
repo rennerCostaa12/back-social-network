@@ -4,6 +4,7 @@ import { Post } from 'src/posts/entities/post.entity';
 import { Column, Entity, PrimaryGeneratedColumn, OneToMany } from 'typeorm';
 import { UsersFollower } from 'src/users-followers/entities/users-follower.entity';
 import { EmoticonsDriver } from 'src/emoticons-driver/entities/emoticons-driver.entity';
+import { Reaction } from 'src/reactions/entities/reaction.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -45,6 +46,9 @@ export class User {
 
   @OneToMany(() => EmoticonsDriver, (usersFollowrs) => usersFollowrs.user)
   emoticons_driver: EmoticonsDriver[];
+
+  @OneToMany(() => Reaction, ((reactions) => reactions.user))
+  reactions: Reaction[];
 
   @Column({
     type: 'datetime',
