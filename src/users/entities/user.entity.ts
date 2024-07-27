@@ -14,7 +14,7 @@ export class User {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ unique: true })
   username: string;
 
   @Column()
@@ -28,6 +28,9 @@ export class User {
 
   @Column()
   status: string;
+
+  @Column()
+  photo_profile: string;
 
   @OneToMany(() => Post, (post) => post.user)
   posts: Post[];

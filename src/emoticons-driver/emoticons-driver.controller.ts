@@ -7,11 +7,14 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { EmoticonsDriverService } from './emoticons-driver.service';
 import { CreateEmoticonsDriverDto } from './dto/create-emoticons-driver.dto';
 import { UpdateEmoticonsDriverDto } from './dto/update-emoticons-driver.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('emoticons-driver')
 export class EmoticonsDriverController {
   constructor(

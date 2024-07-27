@@ -38,13 +38,18 @@ export class CreateTableUsers1721608222768 implements MigrationInterface {
           {
             name: 'status',
             type: 'varchar',
-            length: '255'
+            length: '255',
           },
           {
             name: 'description',
             type: 'varchar',
             length: '255',
             isNullable: true,
+          },
+          {
+            name: 'photo_profile',
+            type: 'varchar',
+            length: '255',
           },
           {
             name: 'created_at',

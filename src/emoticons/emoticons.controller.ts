@@ -1,8 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { EmoticonsService } from './emoticons.service';
 import { CreateEmoticonDto } from './dto/create-emoticon.dto';
 import { UpdateEmoticonDto } from './dto/update-emoticon.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('emoticons')
 export class EmoticonsController {
   constructor(private readonly emoticonsService: EmoticonsService) {}
@@ -23,7 +34,10 @@ export class EmoticonsController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateEmoticonDto: UpdateEmoticonDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateEmoticonDto: UpdateEmoticonDto,
+  ) {
     return this.emoticonsService.update(+id, updateEmoticonDto);
   }
 

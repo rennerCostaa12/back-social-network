@@ -1,9 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  ParseUUIDPipe,
+  UseGuards,
+} from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { DeleteCommentDto } from './dto/delete.comment.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('comments')
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
@@ -24,17 +36,23 @@ export class CommentsController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() updateCommentDto: UpdateCommentDto) {
+  update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() updateCommentDto: UpdateCommentDto,
+  ) {
     return this.commentsService.update(id, updateCommentDto);
   }
 
   @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string, @Body() deleteCommentDto: DeleteCommentDto) {
+  remove(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() deleteCommentDto: DeleteCommentDto,
+  ) {
     return this.commentsService.remove(id, deleteCommentDto);
   }
 
-  @Get("find-comment-by-post/:id")
-  findByPost(@Param('id', ParseUUIDPipe) id: string){
+  @Get('find-comment-by-post/:id')
+  findByPost(@Param('id', ParseUUIDPipe) id: string) {
     return this.commentsService.findCommentByPost(id);
   }
 }

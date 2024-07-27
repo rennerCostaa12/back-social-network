@@ -6,13 +6,16 @@ import {
   Param,
   Delete,
   ParseUUIDPipe,
-  HttpCode
+  HttpCode,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersFollowersService } from './users-followers.service';
 import { CreateUsersFollowerDto } from './dto/create-users-follower.dto';
 import { User } from 'src/users/entities/user.entity';
 import { UnfollowingUsersFollowingDto } from './dto/unfollowing-users-followers.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('users-followers')
 export class UsersFollowersController {
   constructor(private readonly usersFollowersService: UsersFollowersService) {}
@@ -48,6 +51,6 @@ export class UsersFollowersController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() unfollowUserDto: UnfollowingUsersFollowingDto,
   ) {
-    return this.usersFollowersService.unfollowingUser(id, unfollowUserDto)
+    return this.usersFollowersService.unfollowingUser(id, unfollowUserDto);
   }
 }

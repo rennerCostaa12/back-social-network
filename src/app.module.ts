@@ -13,6 +13,7 @@ import { EmoticonsModule } from './emoticons/emoticons.module';
 import { UsersFollowersModule } from './users-followers/users-followers.module';
 import { EmoticonsDriverModule } from './emoticons-driver/emoticons-driver.module';
 import { ReactionsModule } from './reactions/reactions.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -38,7 +39,7 @@ import { ReactionsModule } from './reactions/reactions.module';
           EmoticonsDriverModule,
           ReactionsModule
         ],
-        autoLoadEntities: true,
+        autoLoadEntities: true
       }),
       inject: [ConfigService],
     }),
@@ -52,6 +53,7 @@ import { ReactionsModule } from './reactions/reactions.module';
     UsersFollowersModule,
     EmoticonsDriverModule,
     ReactionsModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

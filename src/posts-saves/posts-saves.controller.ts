@@ -7,11 +7,14 @@ import {
   Param,
   Delete,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { PostsSavesService } from './posts-saves.service';
 import { CreatePostsSaveDto } from './dto/create-posts-save.dto';
 import { UpdatePostsSaveDto } from './dto/update-posts-save.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('posts-saves')
 export class PostsSavesController {
   constructor(private readonly postsSavesService: PostsSavesService) {}

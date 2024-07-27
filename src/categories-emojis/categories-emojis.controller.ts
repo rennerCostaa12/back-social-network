@@ -1,11 +1,24 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { CategoriesEmojisService } from './categories-emojis.service';
 import { CreateCategoriesEmojiDto } from './dto/create-categories-emoji.dto';
 import { UpdateCategoriesEmojiDto } from './dto/update-categories-emoji.dto';
+import { AuthGuard } from 'src/guards/auth.guard';
 
+@UseGuards(AuthGuard)
 @Controller('categories-emojis')
 export class CategoriesEmojisController {
-  constructor(private readonly categoriesEmojisService: CategoriesEmojisService) {}
+  constructor(
+    private readonly categoriesEmojisService: CategoriesEmojisService,
+  ) {}
 
   @Post()
   create(@Body() createCategoriesEmojiDto: CreateCategoriesEmojiDto) {
@@ -23,7 +36,10 @@ export class CategoriesEmojisController {
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCategoriesEmojiDto: UpdateCategoriesEmojiDto) {
+  update(
+    @Param('id') id: string,
+    @Body() updateCategoriesEmojiDto: UpdateCategoriesEmojiDto,
+  ) {
     return this.categoriesEmojisService.update(+id, updateCategoriesEmojiDto);
   }
 

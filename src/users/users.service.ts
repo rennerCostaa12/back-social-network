@@ -5,8 +5,9 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
-
 import { Users } from 'src/constants/Users/users';
+
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -15,7 +16,22 @@ export class UsersService {
     private usersRepository: Repository<User>,
   ) {}
 
-  create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto) {
+    const userFinded = await this.usersRepository.findOneBy({
+      username: createUserDto.username,
+    });
+
+    if (userFinded?.username === createUserDto.username) {
+      throw new HttpException(
+        'Já existe um usuário com esse nome de usuário. Por favr escolha outro',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    const salt = await bcrypt.genSalt();
+
+    createUserDto.password = await bcrypt.hash(createUserDto.password, salt);
+
     const user = this.usersRepository.create({
       ...createUserDto,
       status: Users.active,
