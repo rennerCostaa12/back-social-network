@@ -23,8 +23,4 @@ export class CreateUserDto {
   })
   @IsNotEmpty({ message: 'O campo senha é obrigatório' })
   password: string;
-
-  @IsString({ message: 'O campo foto de usuário é do tipo caractere' })
-  @IsNotEmpty({ message: 'O campo foto de usuário é obrigatório' })
-  photo_profile: string;
 }

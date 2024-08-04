@@ -6,9 +6,15 @@ import { EmoticonsDriver } from './entities/emoticons-driver.entity';
 import { Repository } from 'typeorm';
 import { User } from 'src/users/entities/user.entity';
 import { CategoriesEmoji } from 'src/categories-emojis/entities/categories-emoji.entity';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmoticonsDriverService {
+  private readonly s3Client = new S3Client({
+    region: this.configService.getOrThrow('AWS_S3_REGION'),
+  });
+
   constructor(
     @InjectRepository(EmoticonsDriver)
     private emoticonsDriverRepository: Repository<EmoticonsDriver>,
@@ -18,9 +24,25 @@ export class EmoticonsDriverService {
 
     @InjectRepository(CategoriesEmoji)
     private categoriesEmojiRepository: Repository<CategoriesEmoji>,
+
+    private readonly configService: ConfigService,
   ) {}
 
-  async create(createEmoticonsDriverDto: CreateEmoticonsDriverDto) {
+  async uploadFileS3(fileName: string, file: Buffer, bucket: string) {
+    return await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: fileName,
+        Body: file,
+        ACL: 'public-read',
+      }),
+    );
+  }
+
+  async create(
+    createEmoticonsDriverDto: CreateEmoticonsDriverDto,
+    imageDriver: Express.Multer.File,
+  ) {
     const userFinded = await this.usersRepository.findOneBy({
       id: createEmoticonsDriverDto.user,
     });
@@ -40,11 +62,46 @@ export class EmoticonsDriverService {
       );
     }
 
-    const emoticonsDriver = this.emoticonsDriverRepository.create(
-      createEmoticonsDriverDto,
+    const isExistsEmoticonsDriver =
+      await this.emoticonsDriverRepository.findOne({
+        where: {
+          user: userFinded,
+          category: categories,
+        },
+      });
+
+    if (isExistsEmoticonsDriver) {
+      throw new HttpException(
+        'Você já cadastrou esse emoji',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    await this.uploadFileS3(
+      imageDriver.originalname,
+      imageDriver.buffer,
+      'social-network-mobility-pro-teste',
     );
 
+    const urlImgDriver = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${imageDriver.originalname}`;
+
+    const emoticonsDriver = this.emoticonsDriverRepository.create({
+      ...createEmoticonsDriverDto,
+      category: Number(createEmoticonsDriverDto.category) as any,
+      image: urlImgDriver,
+    });
+
     return this.emoticonsDriverRepository.save(emoticonsDriver);
+  }
+
+  async emoticonsByUser(id: string) {
+    const emoticonsFinded = await this.emoticonsDriverRepository
+      .createQueryBuilder('emoticonsDriver')
+      .innerJoinAndSelect('emoticonsDriver.category', 'category')
+      .where('emoticonsDriver.userId = :id', { id })
+      .getMany();
+
+    return emoticonsFinded;
   }
 
   async findEmoticonsByUser(id: string) {
@@ -53,14 +110,7 @@ export class EmoticonsDriverService {
     if (!userFinded) {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
-
-    const emoticonsFinded = await this.emoticonsDriverRepository
-      .createQueryBuilder('emoticonsDriver')
-      .innerJoinAndSelect('emoticonsDriver.category', 'category')
-      .where('emoticonsDriver.userId = :id', { id })
-      .getMany();
-
-    return emoticonsFinded;
+    return this.emoticonsByUser(id);
   }
 
   async findOne(id: number) {
@@ -112,5 +162,19 @@ export class EmoticonsDriverService {
     }
 
     return this.emoticonsDriverRepository.delete(id);
+  }
+
+  async verifyAllEmoticonsRegisterByUser(userId: string) {
+    const responseAllCategories = await this.categoriesEmojiRepository.find();
+    const responseAllEmojisByDriver = await this.emoticonsByUser(userId);
+
+    const missingCategories = responseAllCategories.filter((_, index) => !responseAllEmojisByDriver[index]);
+
+    const allEmojiRegistered = missingCategories.length === 0;
+
+    return {
+      allEmojiRegistered,
+      missingCategories
+    };
   }
 }

@@ -1,11 +1,7 @@
 import { IsString, IsNumber, IsOptional, IsNotEmpty } from 'class-validator';
 
 export class CreatePostDto {
-  @IsString({ message: 'O campo imagem é do tipo caractere' })
-  @IsNotEmpty({ message: 'O campo imagem é obrigatório' })
-  picture: any;
-
-  @IsNumber()
+  @IsString({ message: 'O campo id city é do tipo caractere' })
   @IsNotEmpty({ message: 'O campo id city é obrigatório' })
   city_id: any;
 

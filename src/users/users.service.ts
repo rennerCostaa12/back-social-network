@@ -8,15 +8,33 @@ import { User } from './entities/user.entity';
 import { Users } from 'src/constants/Users/users';
 
 import * as bcrypt from 'bcrypt';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
+  private readonly s3Client = new S3Client({
+    region: this.configService.getOrThrow('AWS_S3_REGION'),
+  });
+
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    private readonly configService: ConfigService,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async uploadFileS3(fileName: string, file: Buffer, bucket: string) {
+    return await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: fileName,
+        Body: file,
+        ACL: 'public-read',
+      }),
+    );
+  }
+
+  async create(createUserDto: CreateUserDto, image: Express.Multer.File) {
     const userFinded = await this.usersRepository.findOneBy({
       username: createUserDto.username,
     });
@@ -28,6 +46,14 @@ export class UsersService {
       );
     }
 
+    await this.uploadFileS3(
+      image.originalname,
+      image.buffer,
+      'social-network-mobility-pro-teste',
+    );
+
+    const url_profile_photo = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${image.originalname}`;
+
     const salt = await bcrypt.genSalt();
 
     createUserDto.password = await bcrypt.hash(createUserDto.password, salt);
@@ -35,6 +61,7 @@ export class UsersService {
     const user = this.usersRepository.create({
       ...createUserDto,
       status: Users.active,
+      photo_profile: url_profile_photo,
     });
     return this.usersRepository.save(user);
   }
@@ -61,11 +88,13 @@ export class UsersService {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    const usersUpdated = this.usersRepository.update(id, {
+    await this.usersRepository.update(id, {
       ...updateUserDto,
       updated_at: new Date(),
     });
 
-    return usersUpdated;
+    return {
+      user: updateUserDto,
+    };
   }
 }

@@ -22,6 +22,9 @@ export class Post {
   @Column()
   city_id: number;
 
+  @Column()
+  comment: string;
+
   @Column({ nullable: true })
   tags: string | null;
 
