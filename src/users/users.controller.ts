@@ -18,10 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('users')
 export class UsersController {
-
-  constructor(
-    private readonly usersService: UsersService,
-  ) {}
+  constructor(private readonly usersService: UsersService) {}
 
   @Post()
   @UseInterceptors(FileInterceptor('image'))
@@ -46,16 +43,16 @@ export class UsersController {
 
   @UseGuards(AuthGuard)
   @Patch(':id')
+  @UseInterceptors(
+    FileInterceptor('image', {
+      fileFilter: (req, file, callback) => callback(null, true),
+    }),
+  )
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updateUserDto: UpdateUserDto,
+    @UploadedFile() image?: Express.Multer.File,
   ) {
-    return this.usersService.update(id, updateUserDto);
-  }
-
-  @Post('uploadTest')
-  @UseInterceptors(FileInterceptor('image'))
-  uploadFile(@UploadedFile() image: Express.Multer.File) {
-    console.log(image);
+    return this.usersService.update(id, updateUserDto, image);
   }
 }

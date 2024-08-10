@@ -39,7 +39,7 @@ import { AuthModule } from './auth/auth.module';
           EmoticonsDriverModule,
           ReactionsModule
         ],
-        autoLoadEntities: true
+        autoLoadEntities: true,
       }),
       inject: [ConfigService],
     }),
@@ -53,7 +53,7 @@ import { AuthModule } from './auth/auth.module';
     UsersFollowersModule,
     EmoticonsDriverModule,
     ReactionsModule,
-    AuthModule,
+    AuthModule
   ],
   controllers: [AppController],
   providers: [AppService],

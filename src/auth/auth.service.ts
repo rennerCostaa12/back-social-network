@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EmoticonsDriver } from 'src/emoticons-driver/entities/emoticons-driver.entity';
 import { User } from 'src/users/entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { Repository } from 'typeorm';
@@ -11,7 +12,11 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+
     private jwtService: JwtService,
+
+    @InjectRepository(EmoticonsDriver)
+    private emoticonsDriversRepository: Repository<EmoticonsDriver>,
   ) {}
 
   async comparePassword(password: string, hash: string) {
@@ -23,7 +28,7 @@ export class AuthService {
     const userInfomations = await this.usersRepository.findOneBy({
       username: dataUser.username,
     });
-
+ 
     if (!userInfomations) {
       throw new HttpException(
         'Username/Senha inválida',
@@ -40,6 +45,14 @@ export class AuthService {
       );
     }
 
+    const { id } = userInfomations;
+
+    const responseEmoticonsDriver = await this.emoticonsDriversRepository
+    .createQueryBuilder('emoticonsDriver')
+    .innerJoinAndSelect('emoticonsDriver.category', 'category')
+    .where('emoticonsDriver.userId = :id', { id })
+    .getMany();
+
     const payload = {
       id: userInfomations.id,
       name: userInfomations.name,
@@ -47,6 +60,7 @@ export class AuthService {
       gender: userInfomations.gender,
       description: userInfomations.description,
       photo_profile: userInfomations.photo_profile,
+      emoticons_drivers: responseEmoticonsDriver
     };
 
     return {

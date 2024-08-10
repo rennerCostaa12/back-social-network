@@ -3,12 +3,17 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { Post } from './entities/post.entity';
 import { StatusPosts } from 'src/constants/StatusPosts/status_posts';
 import { User } from 'src/users/entities/user.entity';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
+
+import { ValidationDurationVideo } from 'src/utils/ValidationsDurationVideo';
+import { UploadFileLocal } from 'src/utils/UploadFileLocal';
 
 @Injectable()
 export class PostsService {
@@ -41,6 +46,33 @@ export class PostsService {
     img_picture: Express.Multer.File[],
     comment: Express.Multer.File[],
   ) {
+
+    if(!comment){
+      throw new HttpException("Comentário é obrigatório", HttpStatus.BAD_REQUEST);
+    }
+
+    if(!img_picture){
+      throw new HttpException("Vídeo/Imagem é obrigatório", HttpStatus.BAD_REQUEST);
+    }
+
+    const localFilePath = path.resolve(
+      __dirname,
+      '../tmp/uploads',
+      img_picture[0].originalname,
+    );
+    await UploadFileLocal(img_picture[0].buffer, localFilePath);
+
+    const responseTest = await ValidationDurationVideo(localFilePath);
+
+    fs.unlinkSync(localFilePath);
+
+    if (!responseTest) {
+      throw new HttpException(
+        'O vídeo excedeu o limite de duração',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
     await this.uploadFileS3(
       img_picture[0].originalname,
       img_picture[0].buffer,
@@ -136,8 +168,10 @@ export class PostsService {
         'posts.picture as picture',
         'posts.city_id as city_id',
         'posts.tags as tags',
+        'posts.comment as comment',
         'posts.created_at as created_at',
         'posts.updated_at as updated_at',
+        'user.id as id_user',
         'user.name as name_user',
         'user.username as username',
         'user.photo_profile as photo_profile',
@@ -146,6 +180,7 @@ export class PostsService {
       .addSelect('COUNT(DISTINCT comments.id)', 'comments')
       .where('posts.userId = :userId', { userId })
       .groupBy('posts.id')
+      .orderBy('posts.created_at', 'DESC')
       .getRawMany();
 
     const postsUsersCount = await this.postRepository

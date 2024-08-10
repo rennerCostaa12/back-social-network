@@ -81,20 +81,42 @@ export class UsersService {
     return userFinded;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto) {
+  async update(
+    id: string,
+    updateUserDto: UpdateUserDto,
+    photo_profile: Express.Multer.File,
+  ) {
     const userFinded = await this.usersRepository.findOneBy({ id });
 
     if (!userFinded) {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
+    if (photo_profile) {
+      await this.uploadFileS3(
+        photo_profile.originalname,
+        photo_profile.buffer,
+        'social-network-mobility-pro-teste',
+      );
+    }
+
+    const url_profile_photo = photo_profile
+      ? `https://social-network-mobility-pro-teste.s3.amazonaws.com/${photo_profile.originalname}`
+      : userFinded.photo_profile;
+
+    if (updateUserDto.password) {
+      const salt = await bcrypt.genSalt();
+      updateUserDto.password = await bcrypt.hash(updateUserDto.password, salt);
+    }
+
     await this.usersRepository.update(id, {
       ...updateUserDto,
+      photo_profile: url_profile_photo,
       updated_at: new Date(),
     });
-
+    
     return {
-      user: updateUserDto,
+      user: { ...updateUserDto, photo_profile: url_profile_photo },
     };
   }
 }
