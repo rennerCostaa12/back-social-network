@@ -9,6 +9,9 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Query,
+  DefaultValuePipe,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -54,5 +57,15 @@ export class UsersController {
     @UploadedFile() image?: Express.Multer.File,
   ) {
     return this.usersService.update(id, updateUserDto, image);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('find-user/:name')
+  searchUsers(
+    @Param('name') name: string,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number = 10,
+  ) {
+    return this.usersService.searchUsers(name, limit, page);
   }
 }

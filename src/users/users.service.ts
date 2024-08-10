@@ -10,6 +10,13 @@ import { Users } from 'src/constants/Users/users';
 import * as bcrypt from 'bcrypt';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
+import { UsersFollower } from 'src/users-followers/entities/users-follower.entity';
+
+import {
+  paginate,
+  Pagination,
+  IPaginationOptions,
+} from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class UsersService {
@@ -21,6 +28,8 @@ export class UsersService {
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     private readonly configService: ConfigService,
+    @InjectRepository(UsersFollower)
+    private readonly usersFollowerRepository: Repository<UsersFollower>,
   ) {}
 
   async uploadFileS3(fileName: string, file: Buffer, bucket: string) {
@@ -114,9 +123,50 @@ export class UsersService {
       photo_profile: url_profile_photo,
       updated_at: new Date(),
     });
-    
+
     return {
       user: { ...updateUserDto, photo_profile: url_profile_photo },
     };
+  }
+
+  async getFollowersCount(userId: User): Promise<number> {
+    return await this.usersFollowerRepository
+      .createQueryBuilder('usersfollowers')
+      .where('usersfollowers.followedId = :userId', { userId })
+      .getCount();
+  }
+
+  async getFollowingCount(userId: User): Promise<number> {
+    return await this.usersFollowerRepository
+      .createQueryBuilder('usersfollowers')
+      .where('usersfollowers.followerId = :userId', { userId })
+      .getCount();
+  }
+
+  async searchUsers(
+    nameUser: string,
+    limit: number,
+    page: number,
+  ): Promise<Pagination<any>> {
+    const users = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.name LIKE :nameUser OR user.username LIKE :nameUser', {
+        nameUser: `%${nameUser}%`,
+      });
+
+    const usersPagination = await paginate<any>(users as any, { limit, page });
+
+    const listUsersWithCountFollowers = await Promise.all(
+      usersPagination.items.map(async (value) => {
+        const followerCount = await this.getFollowersCount(value.id);
+        const followingCount = await this.getFollowingCount(value.id);
+
+        const usersFollows = { ...value, followerCount, followingCount };
+
+        return usersFollows;
+      }),
+    );
+
+    return { ...usersPagination, items: listUsersWithCountFollowers };
   }
 }

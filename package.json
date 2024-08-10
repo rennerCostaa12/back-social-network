@@ -39,6 +39,7 @@
     "dotenv": "^16.4.5",
     "get-video-duration": "^4.1.0",
     "mysql2": "^3.10.3",
+    "nestjs-typeorm-paginate": "^4.0.4",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "sharp": "^0.33.4",
