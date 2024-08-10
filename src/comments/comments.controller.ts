@@ -10,11 +10,11 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Headers,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { DeleteCommentDto } from './dto/delete.comment.dto';
 import { AuthGuard } from 'src/guards/auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 
@@ -51,11 +51,10 @@ export class CommentsController {
   }
 
   @Delete(':id')
-  remove(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Body() deleteCommentDto: DeleteCommentDto,
-  ) {
-    return this.commentsService.remove(id, deleteCommentDto);
+  remove(@Param('id', ParseUUIDPipe) id: string, @Headers() headers: any) {
+
+    const idUser = headers.id_user;
+    return this.commentsService.remove(id, idUser);
   }
 
   @Get('find-comment-by-post/:id')

@@ -1,7 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
-import { DeleteCommentDto } from './dto/delete.comment.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
@@ -133,23 +132,36 @@ export class CommentsService {
     });
   }
 
-  async remove(id: string, deleteCommentDto: DeleteCommentDto) {
-    const { user: userId } = deleteCommentDto;
-
+  async remove(id: string, idUser: string) {
     const commentFinded = await this.commentsRepository.findOne({
       relations: {
         user: true,
       },
+      where: {
+        id,
+      },
     });
 
-    if (commentFinded.user.id !== userId) {
+    if (!commentFinded) {
+      throw new HttpException(
+        'Comentário não encontrado',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    if (commentFinded.user.id !== idUser) {
       throw new HttpException(
         'Você não permissão para deletar este comentário',
         HttpStatus.FORBIDDEN,
       );
     }
 
-    return this.commentsRepository.delete(id);
+    this.commentsRepository.delete(id);
+
+    return {
+      message: 'Deletado com sucesso',
+      data: commentFinded,
+    };
   }
 
   async findCommentByPost(id: string) {
@@ -164,8 +176,8 @@ export class CommentsService {
         },
       },
       order: {
-        created_at: "ASC"
-      }
+        created_at: 'ASC',
+      },
     });
 
     if (!commentFinded) {
