@@ -8,12 +8,15 @@ import {
   Delete,
   ParseUUIDPipe,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { CommentsService } from './comments.service';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
 import { DeleteCommentDto } from './dto/delete.comment.dto';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @UseGuards(AuthGuard)
 @Controller('comments')
@@ -21,8 +24,12 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
-  create(@Body() createCommentDto: CreateCommentDto) {
-    return this.commentsService.create(createCommentDto);
+  @UseInterceptors(FileInterceptor('comment'))
+  create(
+    @Body() createCommentDto: CreateCommentDto,
+    @UploadedFile() comment: Express.Multer.File,
+  ) {
+    return this.commentsService.create(createCommentDto, comment);
   }
 
   @Get()

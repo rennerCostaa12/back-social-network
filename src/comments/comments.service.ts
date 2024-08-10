@@ -7,9 +7,15 @@ import { Repository } from 'typeorm';
 import { Comment } from './entities/comment.entity';
 import { Post } from 'src/posts/entities/post.entity';
 import { User } from 'src/users/entities/user.entity';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class CommentsService {
+  private readonly s3Client = new S3Client({
+    region: this.configService.getOrThrow('AWS_S3_REGION'),
+  });
+
   constructor(
     @InjectRepository(Comment)
     private commentsRepository: Repository<Comment>,
@@ -17,9 +23,31 @@ export class CommentsService {
     private usersRepository: Repository<User>,
     @InjectRepository(Post)
     private postsRepository: Repository<Post>,
+    private readonly configService: ConfigService,
   ) {}
 
-  async create(createCommentDto: CreateCommentDto) {
+  async uploadFileS3(fileName: string, file: Buffer, bucket: string) {
+    return await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: fileName,
+        Body: file,
+        ACL: 'public-read',
+      }),
+    );
+  }
+
+  async create(
+    createCommentDto: CreateCommentDto,
+    comment: Express.Multer.File,
+  ) {
+    if (!comment) {
+      throw new HttpException(
+        'Comentário é obrigatório',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     const userFinded = await this.usersRepository.findOneBy({
       id: createCommentDto.user,
     });
@@ -36,7 +64,18 @@ export class CommentsService {
       throw new HttpException('Post não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    const comments = this.commentsRepository.create(createCommentDto);
+    await this.uploadFileS3(
+      comment.originalname,
+      comment.buffer,
+      'social-network-mobility-pro-teste',
+    );
+
+    const url_comment = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${comment.originalname}`;
+
+    const comments = this.commentsRepository.create({
+      ...createCommentDto,
+      comment: url_comment,
+    });
 
     return this.commentsRepository.save(comments);
   }
@@ -117,17 +156,23 @@ export class CommentsService {
     const commentFinded = await this.commentsRepository.find({
       relations: {
         post: true,
-        user: true
+        user: true,
       },
       where: {
         post: {
-          id
-        }
+          id,
+        },
+      },
+      order: {
+        created_at: "ASC"
       }
     });
 
-    if(!commentFinded){
-      throw new HttpException('Comentário não encontrado', HttpStatus.NOT_FOUND);
+    if (!commentFinded) {
+      throw new HttpException(
+        'Comentário não encontrado',
+        HttpStatus.NOT_FOUND,
+      );
     }
 
     return commentFinded;
