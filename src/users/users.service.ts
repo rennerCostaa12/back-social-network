@@ -12,11 +12,7 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { UsersFollower } from 'src/users-followers/entities/users-follower.entity';
 
-import {
-  paginate,
-  Pagination,
-  IPaginationOptions,
-} from 'nestjs-typeorm-paginate';
+import { paginate, Pagination } from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class UsersService {
@@ -80,14 +76,23 @@ export class UsersService {
     return this.usersRepository.find();
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, userId: string) {
     const userFinded = await this.usersRepository.findOneBy({ id });
+
+    const isFollowingUser = await this.usersFollowerRepository
+      .createQueryBuilder('usersFollowers')
+      .where('usersFollowers.followerId = :userId', { userId })
+      .andWhere('usersFollowers.followedId = :id', { id })
+      .getOne();
 
     if (!userFinded) {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    return userFinded;
+    return {
+      ...userFinded,
+      isFollowing: isFollowingUser !== null ? true : false,
+    };
   }
 
   async update(
@@ -143,10 +148,20 @@ export class UsersService {
       .getCount();
   }
 
+  async getFollowingDetails(userId: string): Promise<User[]> {
+    return await this.usersRepository
+      .createQueryBuilder('user')
+      .innerJoin('user.followers', 'follow', 'follow.followerId = :userId', {
+        userId,
+      })
+      .getMany();
+  }
+
   async searchUsers(
     nameUser: string,
     limit: number,
     page: number,
+    user_id: string,
   ): Promise<Pagination<any>> {
     const users = await this.usersRepository
       .createQueryBuilder('user')
@@ -154,17 +169,29 @@ export class UsersService {
         nameUser: `%${nameUser}%`,
       });
 
+    const usersFollowing = await this.getFollowingDetails(user_id);
+    const idsUsersFolowing = usersFollowing.map((value) => {
+      return value.id;
+    });
+
     const usersPagination = await paginate<any>(users as any, { limit, page });
 
     const listUsersWithCountFollowers = await Promise.all(
-      usersPagination.items.map(async (value) => {
-        const followerCount = await this.getFollowersCount(value.id);
-        const followingCount = await this.getFollowingCount(value.id);
+      usersPagination.items
+        .filter((data) => data.id !== user_id)
+        .map(async (value) => {
+          const followerCount = await this.getFollowersCount(value.id);
+          const followingCount = await this.getFollowingCount(value.id);
 
-        const usersFollows = { ...value, followerCount, followingCount };
+          const usersFollows = {
+            ...value,
+            followerCount,
+            followingCount,
+            isFollowing: idsUsersFolowing.includes(value.id),
+          };
 
-        return usersFollows;
-      }),
+          return usersFollows;
+        }),
     );
 
     return { ...usersPagination, items: listUsersWithCountFollowers };

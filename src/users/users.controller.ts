@@ -12,6 +12,7 @@ import {
   Query,
   DefaultValuePipe,
   ParseIntPipe,
+  Headers,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -40,8 +41,9 @@ export class UsersController {
 
   @UseGuards(AuthGuard)
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.usersService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @Headers() headers: any) {
+    const userId = headers.user_id;
+    return this.usersService.findOne(id, userId);
   }
 
   @UseGuards(AuthGuard)
@@ -65,7 +67,9 @@ export class UsersController {
     @Param('name') name: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
     @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number = 10,
-  ) {
-    return this.usersService.searchUsers(name, limit, page);
+    @Headers() headers: any,
+  ) {;
+    const userId = headers.user_id;
+    return this.usersService.searchUsers(name, limit, page, userId);
   }
 }
