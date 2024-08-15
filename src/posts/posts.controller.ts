@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  Headers,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -48,8 +49,9 @@ export class PostsController {
   }
 
   @Get(':id')
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.postsService.findOne(id);
+  findOne(@Param('id', ParseUUIDPipe) id: string, @Headers() headers: any) {
+    const userId = headers.id_user;
+    return this.postsService.findOne(id, userId);
   }
 
   @Patch(':id')
@@ -66,7 +68,8 @@ export class PostsController {
   }
 
   @Get('find-post-by-user/:id')
-  findPostByUser(@Param('id', ParseUUIDPipe) id: string) {
-    return this.postsService.findPostByUser(id);
+  findPostByUser(@Param('id', ParseUUIDPipe) id: string, @Headers() headers: any) {
+    const idUserLoggedIn = headers.id_user;
+    return this.postsService.findPostByUser(id, idUserLoggedIn);
   }
 }

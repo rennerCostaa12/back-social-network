@@ -8,6 +8,8 @@ import {
   Delete,
   ParseIntPipe,
   UseGuards,
+  Headers,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { PostsSavesService } from './posts-saves.service';
 import { CreatePostsSaveDto } from './dto/create-posts-save.dto';
@@ -20,8 +22,12 @@ export class PostsSavesController {
   constructor(private readonly postsSavesService: PostsSavesService) {}
 
   @Post()
-  create(@Body() createPostsSaveDto: CreatePostsSaveDto) {
-    return this.postsSavesService.create(createPostsSaveDto);
+  create(
+    @Body() createPostsSaveDto: CreatePostsSaveDto,
+    @Headers() headers: any,
+  ) {
+    const id_user = headers.id_user;
+    return this.postsSavesService.create(createPostsSaveDto, id_user);
   }
 
   @Get()
@@ -38,12 +44,15 @@ export class PostsSavesController {
   update(
     @Param('id', ParseIntPipe) id: string,
     @Body() updatePostsSaveDto: UpdatePostsSaveDto,
+    @Headers() headers: any,
   ) {
-    return this.postsSavesService.update(+id, updatePostsSaveDto);
+    const id_user = headers.id_user;
+    return this.postsSavesService.update(+id, updatePostsSaveDto, id_user);
   }
 
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: string) {
-    return this.postsSavesService.remove(+id);
+  @Delete(':idPost')
+  remove(@Param('idPost', ParseUUIDPipe) id: string, @Headers() headers: any) {
+    const id_user = headers.id_user;
+    return this.postsSavesService.remove(id, id_user);
   }
 }

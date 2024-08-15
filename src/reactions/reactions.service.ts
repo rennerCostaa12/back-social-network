@@ -24,9 +24,9 @@ export class ReactionsService {
     private postsRepository: Repository<Post>,
   ) {}
 
-  async create(createReactionDto: CreateReactionDto) {
+  async create(createReactionDto: CreateReactionDto, user_id: string) {
     const userFinded = await this.usersRepository.findOneBy({
-      id: createReactionDto.user,
+      id: user_id,
     });
 
     if (!userFinded) {
@@ -53,7 +53,10 @@ export class ReactionsService {
       throw new HttpException('Post não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    const reactions = await this.reactionsRepository.create(createReactionDto);
+    const reactions = await this.reactionsRepository.create({
+      ...createReactionDto,
+      user: user_id as any,
+    });
 
     return this.reactionsRepository.save(reactions);
   }
@@ -97,9 +100,13 @@ export class ReactionsService {
     return emoticonsFinded;
   }
 
-  async update(id: string, updateReactionDto: UpdateReactionDto) {
+  async update(
+    id: string,
+    updateReactionDto: UpdateReactionDto,
+    user_id: string,
+  ) {
     const userFinded = await this.usersRepository.findOneBy({
-      id: updateReactionDto.user,
+      id: user_id,
     });
 
     if (!userFinded) {
@@ -136,13 +143,10 @@ export class ReactionsService {
     });
 
     if (!reactionFinded) {
-      throw new HttpException(
-        'Reação não encontrada',
-        HttpStatus.NOT_FOUND,
-      );
+      throw new HttpException('Reação não encontrada', HttpStatus.NOT_FOUND);
     }
 
-    if (reactionFinded.user.id !== updateReactionDto.user) {
+    if (reactionFinded.user.id !== user_id) {
       throw new HttpException(
         'Você não tem permissão para editar esta reação',
         HttpStatus.FORBIDDEN,
@@ -155,13 +159,17 @@ export class ReactionsService {
     });
   }
 
-  async remove(id: string) {
-    const responseReactions = await this.reactionsRepository.findOneBy({ id });
+  async remove(idPost: string, userId: string) {
+    const responseReactions = await this.reactionsRepository
+      .createQueryBuilder('Reactions')
+      .where('Reactions.userId = :userId', { userId })
+      .andWhere('Reactions.postId = :idPost', { idPost })
+      .getOne();
 
     if (!responseReactions) {
       throw new HttpException('Reação não encontradoa', HttpStatus.NOT_FOUND);
     }
 
-    return this.reactionsRepository.delete(id);
+    return this.reactionsRepository.delete(responseReactions.id);
   }
 }

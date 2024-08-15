@@ -18,9 +18,9 @@ export class PostsSavesService {
     private postRepository: Repository<Post>,
   ) {}
 
-  async create(createPostsSaveDto: CreatePostsSaveDto) {
+  async create(createPostsSaveDto: CreatePostsSaveDto, userId: string) {
     const userFinded = await this.userRepository.findOneBy({
-      id: createPostsSaveDto.user,
+      id: userId,
     });
 
     if (!userFinded) {
@@ -35,7 +35,10 @@ export class PostsSavesService {
       throw new HttpException('Post não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    const post = this.postSaveRepository.create(createPostsSaveDto);
+    const post = this.postSaveRepository.create({
+      ...createPostsSaveDto,
+      user: userId as any,
+    });
 
     return this.postSaveRepository.save(post);
   }
@@ -67,9 +70,13 @@ export class PostsSavesService {
     return postSaveFinded;
   }
 
-  async update(id: number, updatePostsSaveDto: UpdatePostsSaveDto) {
+  async update(
+    id: number,
+    updatePostsSaveDto: UpdatePostsSaveDto,
+    userId: string,
+  ) {
     const userFinded = await this.userRepository.findOneBy({
-      id: updatePostsSaveDto.user,
+      id: userId,
     });
 
     if (!userFinded) {
@@ -92,7 +99,13 @@ export class PostsSavesService {
     return postSaveUpdated;
   }
 
-  remove(id: number) {
-    return this.postSaveRepository.delete(id);
+  async remove(idPost: string, userId: string) {
+    const findPostSaved = await this.postSaveRepository
+      .createQueryBuilder('postsSave')
+      .where('postsSave.userId = :userId', { userId })
+      .andWhere('postsSave.postId = :idPost', { idPost })
+      .getOne();
+
+    return this.postSaveRepository.delete(findPostSaved.id);
   }
 }

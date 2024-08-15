@@ -14,6 +14,8 @@ import { ConfigService } from '@nestjs/config';
 
 import { ValidationDurationVideo } from 'src/utils/ValidationsDurationVideo';
 import { UploadFileLocal } from 'src/utils/UploadFileLocal';
+import { Reaction } from 'src/reactions/entities/reaction.entity';
+import { PostsSave } from 'src/posts-saves/entities/posts-save.entity';
 
 @Injectable()
 export class PostsService {
@@ -24,9 +26,12 @@ export class PostsService {
   constructor(
     @InjectRepository(Post)
     private postRepository: Repository<Post>,
-
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Reaction)
+    private reactionsRepository: Repository<Reaction>,
+    @InjectRepository(PostsSave)
+    private postsSaveRepository: Repository<PostsSave>,
     private readonly configService: ConfigService,
   ) {}
 
@@ -46,13 +51,18 @@ export class PostsService {
     img_picture: Express.Multer.File[],
     comment: Express.Multer.File[],
   ) {
-
-    if(!comment){
-      throw new HttpException("Comentário é obrigatório", HttpStatus.BAD_REQUEST);
+    if (!comment) {
+      throw new HttpException(
+        'Comentário é obrigatório',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
-    if(!img_picture){
-      throw new HttpException("Vídeo/Imagem é obrigatório", HttpStatus.BAD_REQUEST);
+    if (!img_picture) {
+      throw new HttpException(
+        'Vídeo/Imagem é obrigatório',
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     const localFilePath = path.resolve(
@@ -102,7 +112,7 @@ export class PostsService {
     return this.postRepository.find();
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user_id: string) {
     const postFinded = await this.postRepository.findOneBy({ id });
 
     if (!postFinded) {
@@ -151,8 +161,37 @@ export class PostsService {
     return this.postRepository.delete(id);
   }
 
-  async findPostByUser(userId: string) {
+  async getReactionsPostsByUser(userId: string) {
+    return await this.reactionsRepository
+      .createQueryBuilder('reactions')
+      .where('reactions.userId = :userId', { userId })
+      .innerJoinAndSelect('reactions.post', 'post')
+      .getMany();
+  }
+
+  async getPostsSavedByUser(userId: string) {
+    return await this.postsSaveRepository
+      .createQueryBuilder('postsSave')
+      .where('postsSave.userId = :userId', { userId })
+      .innerJoinAndSelect('postsSave.post', 'post')
+      .getMany();
+  }
+
+  async findPostByUser(userId: string, idUserLoggedIn: string) {
     const userFinded = await this.usersRepository.findOneBy({ id: userId });
+
+    const listReactionsPostByUser =
+      await this.getReactionsPostsByUser(idUserLoggedIn);
+
+    const listPostsSavedByUser = await this.getPostsSavedByUser(idUserLoggedIn);
+
+    const idsPostsReactions = listReactionsPostByUser.map((response) => {
+      return response.post.id;
+    });
+
+    const idsPostsSaved = listPostsSavedByUser.map((response) => {
+      return response.post.id;
+    });
 
     if (!userFinded) {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
@@ -188,9 +227,17 @@ export class PostsService {
       .where('posts.userId = :userId', { userId })
       .getCount();
 
+    const listsPostsWithStatusReacted = postStats.map((response) => {
+      return {
+        ...response,
+        is_reacted: idsPostsReactions.includes(response.id),
+        is_saved: idsPostsSaved.includes(response.id)
+      };
+    });
+
     return {
       posts_counts: postsUsersCount,
-      posts: postStats,
+      posts: listsPostsWithStatusReacted,
     };
   }
 }
