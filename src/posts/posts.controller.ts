@@ -55,11 +55,24 @@ export class PostsController {
   }
 
   @Patch(':id')
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: 'picture', maxCount: 1 },
+      { name: 'comment', maxCount: 1 },
+    ]),
+  )
   update(
+    @UploadedFiles()
+    files: {
+      picture?: Express.Multer.File[];
+      comment?: Express.Multer.File[];
+    },
     @Param('id', ParseUUIDPipe) id: string,
     @Body() updatePostDto: UpdatePostDto,
   ) {
-    return this.postsService.update(id, updatePostDto);
+    const { picture, comment } = files;
+
+    return this.postsService.update(id, updatePostDto, picture, comment);
   }
 
   @Delete(':id')
@@ -68,7 +81,10 @@ export class PostsController {
   }
 
   @Get('find-post-by-user/:id')
-  findPostByUser(@Param('id', ParseUUIDPipe) id: string, @Headers() headers: any) {
+  findPostByUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Headers() headers: any,
+  ) {
     const idUserLoggedIn = headers.id_user;
     return this.postsService.findPostByUser(id, idUserLoggedIn);
   }

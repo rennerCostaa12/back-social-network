@@ -6,6 +6,11 @@ import { PostsSave } from './entities/posts-save.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Post } from 'src/posts/entities/post.entity';
 import { Repository } from 'typeorm';
+import {
+  paginate,
+  Pagination,
+  IPaginationOptions,
+} from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class PostsSavesService {
@@ -43,13 +48,37 @@ export class PostsSavesService {
     return this.postSaveRepository.save(post);
   }
 
-  findAll() {
-    return this.postSaveRepository.find({
-      relations: {
-        user: true,
-        post: true,
-      },
-    });
+  async findAll(
+    userId: string,
+    limit: number,
+    page: number,
+  ): Promise<Pagination<any>> {
+    const responsePosts = await this.postSaveRepository
+      .createQueryBuilder('postsSave')
+      .leftJoinAndSelect('postsSave.user', 'user')
+      .leftJoinAndSelect('postsSave.post', 'post')
+      .select([
+        'postsSave.id',
+        'post.id',
+        'post.picture',
+        'post.comment',
+        'post.city_id',
+        'post.tags',
+        'post.created_at',
+        'post.updated_at',
+        'user.id',
+        'user.name',
+        'user.username',
+        'user.photo_profile',
+      ])
+      .where('user.id = :userId', { userId });
+
+    const responsePostsSavedPagination = await paginate<any>(
+      responsePosts as any,
+      { limit, page },
+    );
+
+    return responsePostsSavedPagination;
   }
 
   async findOne(id: number) {

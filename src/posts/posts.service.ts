@@ -72,11 +72,11 @@ export class PostsService {
     );
     await UploadFileLocal(img_picture[0].buffer, localFilePath);
 
-    const responseTest = await ValidationDurationVideo(localFilePath);
+    const responseDurationVideo = await ValidationDurationVideo(localFilePath);
 
     fs.unlinkSync(localFilePath);
 
-    if (!responseTest) {
+    if (!responseDurationVideo) {
       throw new HttpException(
         'O vídeo excedeu o limite de duração',
         HttpStatus.NOT_FOUND,
@@ -122,7 +122,12 @@ export class PostsService {
     return postFinded;
   }
 
-  async update(id: string, updatePostDto: UpdatePostDto) {
+  async update(
+    id: string,
+    updatePostDto: UpdatePostDto,
+    picture: Express.Multer.File[],
+    comment: Express.Multer.File[],
+  ) {
     const postFinded = await this.postRepository.findOne({
       relations: {
         user: true,
@@ -143,8 +148,52 @@ export class PostsService {
       );
     }
 
+    let url_picture: string = postFinded.picture;
+    let url_audio: string = postFinded.comment;
+
+    if (picture) {
+      const localFilePath = path.resolve(
+        __dirname,
+        '../tmp/uploads',
+        picture[0].originalname,
+      );
+      await UploadFileLocal(picture[0].buffer, localFilePath);
+
+      const responseDurationVideo =
+        await ValidationDurationVideo(localFilePath);
+
+      fs.unlinkSync(localFilePath);
+
+      if (!responseDurationVideo) {
+        throw new HttpException(
+          'O vídeo excedeu o limite de duração',
+          HttpStatus.NOT_FOUND,
+        );
+      }
+
+      await this.uploadFileS3(
+        picture[0].originalname,
+        picture[0].buffer,
+        'social-network-mobility-pro-teste',
+      );
+
+      url_picture = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${picture[0].originalname}`;
+    }
+
+    if (comment) {
+      await this.uploadFileS3(
+        comment[0].originalname,
+        comment[0].buffer,
+        'social-network-mobility-pro-teste',
+      );
+
+      url_audio = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${comment[0].originalname}`;
+    }
+
     const postUpdated = this.postRepository.update(id, {
       ...updatePostDto,
+      comment: url_audio,
+      picture: url_picture,
       updated_at: new Date(),
     });
 
@@ -231,7 +280,7 @@ export class PostsService {
       return {
         ...response,
         is_reacted: idsPostsReactions.includes(response.id),
-        is_saved: idsPostsSaved.includes(response.id)
+        is_saved: idsPostsSaved.includes(response.id),
       };
     });
 

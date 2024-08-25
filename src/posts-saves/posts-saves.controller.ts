@@ -10,11 +10,14 @@ import {
   UseGuards,
   Headers,
   ParseUUIDPipe,
+  Query,
+  DefaultValuePipe,
 } from '@nestjs/common';
 import { PostsSavesService } from './posts-saves.service';
 import { CreatePostsSaveDto } from './dto/create-posts-save.dto';
 import { UpdatePostsSaveDto } from './dto/update-posts-save.dto';
 import { AuthGuard } from 'src/guards/auth.guard';
+import { Pagination } from 'nestjs-typeorm-paginate';
 
 @UseGuards(AuthGuard)
 @Controller('posts-saves')
@@ -31,8 +34,13 @@ export class PostsSavesController {
   }
 
   @Get()
-  findAll() {
-    return this.postsSavesService.findAll();
+  findAll(
+    @Headers() headers: any,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(10), ParseIntPipe) limit: number = 10,
+  ) {
+    const id_user = headers.id_user;
+    return this.postsSavesService.findAll(id_user, limit, page);
   }
 
   @Get(':id')
