@@ -17,7 +17,6 @@ import { PostsSavesService } from './posts-saves.service';
 import { CreatePostsSaveDto } from './dto/create-posts-save.dto';
 import { UpdatePostsSaveDto } from './dto/update-posts-save.dto';
 import { AuthGuard } from 'src/guards/auth.guard';
-import { Pagination } from 'nestjs-typeorm-paginate';
 
 @UseGuards(AuthGuard)
 @Controller('posts-saves')

@@ -29,10 +29,10 @@ export class Post {
   tags: string | null;
 
   @ManyToOne(() => User, (user) => user.posts)
-  user: Post;
+  user: User;
 
   @ManyToOne(() => StatusPost, (statusPost) => statusPost.posts)
-  status_posts: Post;
+  status_posts: StatusPost;
 
   @OneToMany(() => PostsSave, (postSave) => postSave.post)
   posts_save: PostsSave[];

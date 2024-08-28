@@ -5,9 +5,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostsSave } from './entities/posts-save.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Post } from 'src/posts/entities/post.entity';
+import { Reaction } from 'src/reactions/entities/reaction.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PostsSave, User, Post])],
+  imports: [TypeOrmModule.forFeature([PostsSave, User, Post, Reaction])],
   controllers: [PostsSavesController],
   providers: [PostsSavesService],
 })

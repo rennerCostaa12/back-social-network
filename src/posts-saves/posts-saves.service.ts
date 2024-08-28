@@ -6,11 +6,8 @@ import { PostsSave } from './entities/posts-save.entity';
 import { User } from 'src/users/entities/user.entity';
 import { Post } from 'src/posts/entities/post.entity';
 import { Repository } from 'typeorm';
-import {
-  paginate,
-  Pagination,
-  IPaginationOptions,
-} from 'nestjs-typeorm-paginate';
+import { paginate, Pagination } from 'nestjs-typeorm-paginate';
+import { Reaction } from 'src/reactions/entities/reaction.entity';
 
 @Injectable()
 export class PostsSavesService {
@@ -19,6 +16,8 @@ export class PostsSavesService {
     private postSaveRepository: Repository<PostsSave>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Reaction)
+    private reactionsRepository: Repository<Reaction>,
     @InjectRepository(Post)
     private postRepository: Repository<Post>,
   ) {}
@@ -48,21 +47,27 @@ export class PostsSavesService {
     return this.postSaveRepository.save(post);
   }
 
-  async findAll(
-    userId: string,
-    limit: number,
-    page: number,
-  ): Promise<Pagination<any>> {
-    const responsePosts = await this.postSaveRepository
+  async getReactionsPostsByUser(userId: string) {
+    return await this.reactionsRepository
+      .createQueryBuilder('reactions')
+      .where('reactions.userId = :userId', { userId })
+      .innerJoinAndSelect('reactions.post', 'post')
+      .getMany();
+  }
+
+  async findAll(userId: string, limit: number, page: number) {
+    const [responsePosts, total] = await this.postSaveRepository
       .createQueryBuilder('postsSave')
-      .leftJoinAndSelect('postsSave.user', 'user')
       .leftJoinAndSelect('postsSave.post', 'post')
+      .leftJoinAndSelect('post.reactions', 'reactions')
+      .leftJoinAndSelect('post.comments', 'comments')
+      .leftJoinAndSelect('post.user', 'user')
       .select([
         'postsSave.id',
         'post.id',
         'post.picture',
-        'post.comment',
         'post.city_id',
+        'post.comment',
         'post.tags',
         'post.created_at',
         'post.updated_at',
@@ -70,15 +75,53 @@ export class PostsSavesService {
         'user.name',
         'user.username',
         'user.photo_profile',
+        'comments.id',
+        'reactions.id',
+        'reactions.emoticonsDriverId',
       ])
-      .where('user.id = :userId', { userId });
+      .where('postsSave.user.id = :userId', { userId })
+      .orderBy('post.created_at', 'DESC')
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
 
-    const responsePostsSavedPagination = await paginate<any>(
-      responsePosts as any,
-      { limit, page },
+    const listReactionsPostByUser = await this.getReactionsPostsByUser(userId);
+    const idsPostsReactions = listReactionsPostByUser.map(
+      (response) => response.post.id,
     );
 
-    return responsePostsSavedPagination;
+    const responsePostsWithReactionsAndPostsSaved = responsePosts.map(
+      (postSave) => {
+        const { post } = postSave;
+
+        return {
+          id: post.id,
+          picture: post.picture,
+          city_id: post.city_id,
+          comment: post.comment,
+          tags: post.tags,
+          created_at: post.created_at,
+          updated_at: post.updated_at,
+          user: {
+            id: post.user.id,
+            name: post.user.name,
+            username: post.user.username,
+            photo_profile: post.user.photo_profile,
+          },
+          comments: post.comments.length,
+          reactions: post.reactions.length,
+          is_reacted: idsPostsReactions.includes(post.id),
+          is_saved: true,
+        };
+      },
+    );
+
+    return {
+      items: responsePostsWithReactionsAndPostsSaved,
+      totalItems: total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(id: number) {

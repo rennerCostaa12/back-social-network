@@ -227,61 +227,55 @@ export class PostsService {
   }
 
   async findPostByUser(userId: string, idUserLoggedIn: string) {
-    const userFinded = await this.usersRepository.findOneBy({ id: userId });
-
-    const listReactionsPostByUser =
-      await this.getReactionsPostsByUser(idUserLoggedIn);
-
-    const listPostsSavedByUser = await this.getPostsSavedByUser(idUserLoggedIn);
-
-    const idsPostsReactions = listReactionsPostByUser.map((response) => {
-      return response.post.id;
-    });
-
-    const idsPostsSaved = listPostsSavedByUser.map((response) => {
-      return response.post.id;
+    const userFinded = await this.usersRepository.findOne({
+      where: { id: userId },
     });
 
     if (!userFinded) {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
-    const postStats = await this.postRepository
-      .createQueryBuilder('posts')
-      .leftJoin('posts.reactions', 'reactions')
-      .leftJoin('posts.comments', 'comments')
-      .leftJoin('posts.user', 'user')
-      .select([
-        'posts.id as id',
-        'posts.picture as picture',
-        'posts.city_id as city_id',
-        'posts.tags as tags',
-        'posts.comment as comment',
-        'posts.created_at as created_at',
-        'posts.updated_at as updated_at',
-        'user.id as id_user',
-        'user.name as name_user',
-        'user.username as username',
-        'user.photo_profile as photo_profile',
-      ])
-      .addSelect('COUNT(DISTINCT reactions.id)', 'reactions')
-      .addSelect('COUNT(DISTINCT comments.id)', 'comments')
-      .where('posts.userId = :userId', { userId })
-      .groupBy('posts.id')
-      .orderBy('posts.created_at', 'DESC')
-      .getRawMany();
+    const listReactionsPostByUser =
+      await this.getReactionsPostsByUser(idUserLoggedIn);
+    const listPostsSavedByUser = await this.getPostsSavedByUser(idUserLoggedIn);
 
-    const postsUsersCount = await this.postRepository
-      .createQueryBuilder('posts')
-      .where('posts.userId = :userId', { userId })
-      .getCount();
+    const idsPostsReactions = listReactionsPostByUser.map(
+      (response) => response.post.id,
+    );
+    const idsPostsSaved = listPostsSavedByUser.map(
+      (response) => response.post.id,
+    );
 
-    const listsPostsWithStatusReacted = postStats.map((response) => {
+    const postStats = await this.postRepository.find({
+      where: { user: { id: userId } },
+      relations: ['reactions', 'comments', 'user'],
+      order: { created_at: 'DESC' },
+    });
+
+    const listsPostsWithStatusReacted = postStats.map((post) => {
       return {
-        ...response,
-        is_reacted: idsPostsReactions.includes(response.id),
-        is_saved: idsPostsSaved.includes(response.id),
+        id: post.id,
+        picture: post.picture,
+        city_id: post.city_id,
+        comment: post.comment,
+        tags: post.tags,
+        created_at: post.created_at,
+        updated_at: post.updated_at,
+        user: {
+          id: post.user.id,
+          name: post.user.name,
+          username: post.user.username,
+          photo_profile: post.user.photo_profile,
+        },
+        comments: post.comments.length,
+        reactions: post.reactions.length,
+        is_reacted: idsPostsReactions.includes(post.id),
+        is_saved: idsPostsSaved.includes(post.id),
       };
+    });
+
+    const postsUsersCount = await this.postRepository.count({
+      where: { user: { id: userId } },
     });
 
     return {
