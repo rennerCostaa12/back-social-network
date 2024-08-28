@@ -36,7 +36,6 @@ export class EmoticonsDriverController {
     );
   }
 
-  @UseGuards(AuthGuard)
   @Get('find-emoticons-by-user/:id')
   findAll(@Param('id', ParseUUIDPipe) id: string) {
     return this.emoticonsDriverService.findEmoticonsByUser(id);
