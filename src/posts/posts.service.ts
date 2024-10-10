@@ -283,4 +283,98 @@ export class PostsService {
       posts: listsPostsWithStatusReacted,
     };
   }
+
+  async getFollowingDetails(userId: string): Promise<User[]> {
+    return await this.usersRepository
+      .createQueryBuilder('user')
+      .innerJoin('user.followers', 'follow', 'follow.followerId = :userId', {
+        userId,
+      })
+      .getMany();
+  }
+
+  async findPostsFromFollowingUsers(
+    userId: string,
+    limit: number,
+    page: number,
+  ) {
+    const followingUsers = await this.getFollowingDetails(userId);
+    const followingUserIds = followingUsers.map((user) => user.id);
+
+    if (followingUserIds.length === 0) {
+      throw new HttpException(
+        'Você não está seguindo nenhum usuário',
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    const listReactionsPostByUser = await this.getReactionsPostsByUser(userId);
+    const listPostsSavedByUser = await this.getPostsSavedByUser(userId);
+
+    const idsPostsReactions = listReactionsPostByUser.map(
+      (response) => response.post.id,
+    );
+    const idsPostsSaved = listPostsSavedByUser.map(
+      (response) => response.post.id,
+    );
+
+    const offset = (page - 1) * limit;
+
+    const totalPosts = await this.postRepository
+      .createQueryBuilder('post')
+      .where('post.user IN (:...followingUserIds)', {
+        followingUserIds: [...followingUserIds, userId],
+      })
+      .getCount();
+
+    const query = await this.postRepository
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.user', 'user')
+      .leftJoinAndSelect('post.reactions', 'reactions')
+      .leftJoinAndSelect('post.comments', 'comments')
+      .where('post.user IN (:...followingUserIds)', {
+        followingUserIds: [...followingUserIds, userId],
+      })
+      .orderBy('post.created_at', 'DESC')
+      .skip(offset)
+      .take(limit)
+      .getMany();
+      
+    const listPostsFeed = query.map((response) => {
+      return {
+        id: response.id,
+        picture: response.picture,
+        city_id: response.city_id,
+        comment: response.comment,
+        tags: response.tags,
+        created_at: response.created_at,
+        updated_at: response.updated_at,
+        user: {
+          id: response.user.id,
+          name: response.user.name,
+          username: response.user.username,
+          photo_profile: response.user.photo_profile,
+        },
+        comments: response.comments.length,
+        reactions: response.reactions.length,
+        is_reacted: idsPostsReactions.includes(response.id),
+        is_saved: idsPostsSaved.includes(response.id),
+      };
+    });
+
+    const totalPages = Math.ceil(totalPosts / limit);
+
+    const meta = {
+      totalItems: totalPosts,
+      itemCount: listPostsFeed.length,
+      itemsPerPage: limit,
+      totalPages: totalPages,
+      currentPage: page,
+    };
+
+    return {
+      data: listPostsFeed,
+      meta,
+    };
+  }
 }

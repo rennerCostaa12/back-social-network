@@ -16,7 +16,6 @@ export const UploadFileLocal = async (
   return new Promise((resolve, reject) => {
     fs.writeFile(filePath, buffer, (err) => {
       if (err){
-        console.log("ERROR", err);
         reject(err)
       }else{
         resolve()

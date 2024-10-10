@@ -11,6 +11,9 @@ import {
   UseInterceptors,
   UploadedFiles,
   Headers,
+  DefaultValuePipe,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -48,6 +51,20 @@ export class PostsController {
     return this.postsService.findAll();
   }
 
+  @Get('find-posts-feed')
+  findPostsFromFollowingUsers(
+    @Headers() headers: any,
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit: number = 5,
+  ) {
+    const idUserLoggedIn = headers.id_user;
+    return this.postsService.findPostsFromFollowingUsers(
+      idUserLoggedIn,
+      limit,
+      page,
+    );
+  }
+
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string, @Headers() headers: any) {
     const userId = headers.id_user;
@@ -75,11 +92,6 @@ export class PostsController {
     return this.postsService.update(id, updatePostDto, picture, comment);
   }
 
-  @Delete(':id')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.postsService.remove(id);
-  }
-
   @Get('find-post-by-user/:id')
   findPostByUser(
     @Param('id', ParseUUIDPipe) id: string,
@@ -87,5 +99,10 @@ export class PostsController {
   ) {
     const idUserLoggedIn = headers.id_user;
     return this.postsService.findPostByUser(id, idUserLoggedIn);
+  }
+
+  @Delete(':id')
+  remove(@Param('id', ParseUUIDPipe) id: string) {
+    return this.postsService.remove(id);
   }
 }

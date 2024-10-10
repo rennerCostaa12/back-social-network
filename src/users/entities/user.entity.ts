@@ -50,7 +50,7 @@ export class User {
   @OneToMany(() => EmoticonsDriver, (usersFollowrs) => usersFollowrs.user)
   emoticons_driver: EmoticonsDriver[];
 
-  @OneToMany(() => Reaction, ((reactions) => reactions.user))
+  @OneToMany(() => Reaction, (reactions) => reactions.user)
   reactions: Reaction[];
 
   @Column({

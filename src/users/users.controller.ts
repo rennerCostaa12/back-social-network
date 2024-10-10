@@ -40,9 +40,27 @@ export class UsersController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('find-new-users')
+  findNewUsers(@Headers() headers: any) {
+    const userId = headers.id_user;
+    return this.usersService.getNewUsers(userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('users-recommended')
+  usersRecommended(
+    @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
+    @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number = 15,
+    @Headers() headers: any,
+  ) {
+    const userId = headers.id_user;
+    return this.usersService.findRecommendedUsers(userId, limit, page);
+  }
+
+  @UseGuards(AuthGuard)
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string, @Headers() headers: any) {
-    const userId = headers.user_id;
+    const userId = headers.id_user;
     return this.usersService.findOne(id, userId);
   }
 
@@ -63,13 +81,20 @@ export class UsersController {
 
   @UseGuards(AuthGuard)
   @Get('find-user/:name')
-  searchUsers(
+  searchUsers(@Param('name') name: string, @Headers() headers: any) {
+    const userId = headers.id_user;
+    return this.usersService.searchUsers(name, userId);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('find-user-pagination/:name')
+  searchUsersPagination(
     @Param('name') name: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(15), ParseIntPipe) limit: number = 10,
+    @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit: number = 5,
     @Headers() headers: any,
-  ) {;
-    const userId = headers.user_id;
-    return this.usersService.searchUsers(name, limit, page, userId);
+  ) {
+    const userId = headers.id_user;
+    return this.usersService.searchUsersPagination(name, limit, page, userId);
   }
 }

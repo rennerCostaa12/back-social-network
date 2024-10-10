@@ -1,4 +1,5 @@
 import { HttpStatus, HttpException, Injectable } from '@nestjs/common';
+import { Between } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -157,7 +158,42 @@ export class UsersService {
       .getMany();
   }
 
-  async searchUsers(
+  async searchUsers(nameUser: string, user_id: string) {
+    const users = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('user.name LIKE :nameUser OR user.username LIKE :nameUser', {
+        nameUser: `%${nameUser}%`,
+      })
+      .andWhere('user.id != :user_id', { user_id })
+      .getMany();
+
+    const usersFollowing = await this.getFollowingDetails(user_id);
+    const idsUsersFolowing = usersFollowing.map((value) => {
+      return value.id;
+    });
+
+    const usersWithCountFollowers = await Promise.all(
+      users
+        .filter((data) => data.id !== user_id)
+        .map(async (value) => {
+          const followerCount = await this.getFollowersCount(value.id as any);
+          const followingCount = await this.getFollowingCount(value.id as any);
+
+          const usersFollows = {
+            ...value,
+            followerCount,
+            followingCount,
+            isFollowing: idsUsersFolowing.includes(value.id),
+          };
+
+          return usersFollows;
+        }),
+    );
+
+    return usersWithCountFollowers;
+  }
+
+  async searchUsersPagination(
     nameUser: string,
     limit: number,
     page: number,
@@ -167,7 +203,8 @@ export class UsersService {
       .createQueryBuilder('user')
       .where('user.name LIKE :nameUser OR user.username LIKE :nameUser', {
         nameUser: `%${nameUser}%`,
-      });
+      })
+      .where('user.id != :user_id', { user_id });
 
     const usersFollowing = await this.getFollowingDetails(user_id);
     const idsUsersFolowing = usersFollowing.map((value) => {
@@ -195,5 +232,64 @@ export class UsersService {
     );
 
     return { ...usersPagination, items: listUsersWithCountFollowers };
+  }
+
+  async getNewUsers(idUser: string) {
+    const currentDate = new Date();
+
+    currentDate.setMonth(currentDate.getMonth() - 1);
+
+    const getUsers = await this.usersRepository.find({
+      select: [
+        'id',
+        'name',
+        'username',
+        'gender',
+        'description',
+        'photo_profile',
+        'created_at',
+        'updated_at',
+      ],
+      where: {
+        status: Users.active,
+        created_at: Between(currentDate, new Date()),
+      },
+    });
+
+    return getUsers.filter((data) => data.id !== idUser);
+  }
+
+  async findRecommendedUsers(userId: string, limit: number, page: number) {
+    const usersFollowing = await this.getFollowingDetails(userId);
+    const idsUsersFolowing = usersFollowing.map((value) => {
+      return value.id;
+    });
+
+    let responseUsers = await this.usersRepository
+      .createQueryBuilder('user')
+      .select([
+        'user.id',
+        'user.name',
+        'user.username',
+        'user.gender',
+        'user.description',
+        'user.status',
+        'user.photo_profile',
+        'user.created_at',
+        'user.updated_at',
+      ])
+      .where('user.id != :userId', { userId })
+      .groupBy('user.id')
+      .orderBy('user.created_at', 'DESC');
+
+    if (idsUsersFolowing.length > 0) {
+      responseUsers.andWhere('user.id NOT IN (:...followingIds)', {
+        followingIds: idsUsersFolowing,
+      });
+    }
+
+    const listUsersFinded = await paginate(responseUsers, { limit, page });
+
+    return listUsersFinded;
   }
 }
