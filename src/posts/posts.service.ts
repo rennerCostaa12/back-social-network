@@ -301,12 +301,12 @@ export class PostsService {
     const followingUsers = await this.getFollowingDetails(userId);
     const followingUserIds = followingUsers.map((user) => user.id);
 
-    if (followingUserIds.length === 0) {
-      throw new HttpException(
-        'Você não está seguindo nenhum usuário',
-        HttpStatus.NOT_FOUND,
-      );
-    }
+    // if (followingUserIds.length === 0) {
+    //   throw new HttpException(
+    //     'Você não está seguindo nenhum usuário',
+    //     HttpStatus.NOT_FOUND,
+    //   );
+    // }
 
     const listReactionsPostByUser = await this.getReactionsPostsByUser(userId);
     const listPostsSavedByUser = await this.getPostsSavedByUser(userId);

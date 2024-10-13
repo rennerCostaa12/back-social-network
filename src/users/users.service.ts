@@ -235,9 +235,13 @@ export class UsersService {
   }
 
   async getNewUsers(idUser: string) {
-    const currentDate = new Date();
+    const initDate = new Date();
+    const endDate = new Date();
 
-    currentDate.setMonth(currentDate.getMonth() - 1);
+    initDate.setMonth(initDate.getMonth() - 1);
+    initDate.setHours(0, 0, 0, 0);
+
+    endDate.setHours(23, 59, 59, 999);
 
     const getUsers = await this.usersRepository.find({
       select: [
@@ -252,11 +256,14 @@ export class UsersService {
       ],
       where: {
         status: Users.active,
-        created_at: Between(currentDate, new Date()),
+        created_at: Between(initDate, endDate),
       },
     });
 
-    return getUsers.filter((data) => data.id !== idUser);
+    console.log('CURRENT DATE', initDate);
+    console.log('END DATE', endDate);
+
+    return getUsers;
   }
 
   async findRecommendedUsers(userId: string, limit: number, page: number) {
