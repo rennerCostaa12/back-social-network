@@ -197,41 +197,60 @@ export class UsersService {
     nameUser: string,
     limit: number,
     page: number,
-    user_id: string,
-  ): Promise<Pagination<any>> {
-    const users = await this.usersRepository
+    userId: string,
+  ) {
+    const offset = (page - 1) * limit;
+
+    const totalUsers = await this.usersRepository
       .createQueryBuilder('user')
-      .where('user.name LIKE :nameUser OR user.username LIKE :nameUser', {
+      .where('(user.name LIKE :nameUser OR user.username LIKE :nameUser)', {
         nameUser: `%${nameUser}%`,
       })
-      .where('user.id != :user_id', { user_id });
+      .andWhere('user.id != :userId', { userId: userId })
+      .getCount();
 
-    const usersFollowing = await this.getFollowingDetails(user_id);
+    const usersQuery = await this.usersRepository
+      .createQueryBuilder('user')
+      .where('(user.name LIKE :nameUser OR user.username LIKE :nameUser)', {
+        nameUser: `%${nameUser}%`,
+      })
+      .andWhere('user.id != :userId', { userId: userId })
+      .skip(offset)
+      .take(limit)
+      .getMany();
+
+    const usersFollowing = await this.getFollowingDetails(userId);
     const idsUsersFolowing = usersFollowing.map((value) => {
       return value.id;
     });
 
-    const usersPagination = await paginate<any>(users as any, { limit, page });
-
     const listUsersWithCountFollowers = await Promise.all(
-      usersPagination.items
-        .filter((data) => data.id !== user_id)
-        .map(async (value) => {
-          const followerCount = await this.getFollowersCount(value.id);
-          const followingCount = await this.getFollowingCount(value.id);
+      usersQuery.map(async (value) => {
+        const followerCount = await this.getFollowersCount(value.id as any);
+        const followingCount = await this.getFollowingCount(value.id as any);
 
-          const usersFollows = {
-            ...value,
-            followerCount,
-            followingCount,
-            isFollowing: idsUsersFolowing.includes(value.id),
-          };
+        const usersFollows = {
+          ...value,
+          followerCount,
+          followingCount,
+          isFollowing: idsUsersFolowing.includes(value.id),
+        };
 
-          return usersFollows;
-        }),
+        return usersFollows;
+      }),
     );
 
-    return { ...usersPagination, items: listUsersWithCountFollowers };
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    const meta = {
+      totalItems: totalUsers,
+      itemCount: listUsersWithCountFollowers.length,
+      itemsPerPage: limit,
+      totalPages: totalPages,
+      currentPage: page,
+    };
+
+    return { items: listUsersWithCountFollowers, meta };
   }
 
   async getNewUsers(idUser: string) {
@@ -259,9 +278,6 @@ export class UsersService {
         created_at: Between(initDate, endDate),
       },
     });
-
-    console.log('CURRENT DATE', initDate);
-    console.log('END DATE', endDate);
 
     return getUsers;
   }

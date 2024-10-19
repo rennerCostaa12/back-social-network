@@ -91,7 +91,7 @@ export class UsersController {
   searchUsersPagination(
     @Param('name') name: string,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number = 1,
-    @Query('limit', new DefaultValuePipe(5), ParseIntPipe) limit: number = 5,
+    @Query('limit', new DefaultValuePipe(3), ParseIntPipe) limit: number = 3,
     @Headers() headers: any,
   ) {
     const userId = headers.id_user;
