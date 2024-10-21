@@ -13,6 +13,12 @@ import { ConfigService } from '@nestjs/config';
 export class CommentsService {
   private readonly s3Client = new S3Client({
     region: this.configService.getOrThrow('AWS_S3_REGION'),
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+    endpoint: process.env.AWS_ENDPOINT,
+    forcePathStyle: true,
   });
 
   constructor(
@@ -63,13 +69,15 @@ export class CommentsService {
       throw new HttpException('Post não encontrado', HttpStatus.NOT_FOUND);
     }
 
+    const fileNameComments = `comments/list/${comment.originalname}`;
+
     await this.uploadFileS3(
-      comment.originalname,
+      fileNameComments,
       comment.buffer,
-      'social-network-mobility-pro-teste',
+      process.env.AWS_BUCKET,
     );
 
-    const url_comment = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${comment.originalname}`;
+    const url_comment = `${process.env.AWS_ENDPOINT}${process.env.AWS_BUCKET}/comments/list/${comment.originalname}`;
 
     const comments = this.commentsRepository.create({
       ...createCommentDto,

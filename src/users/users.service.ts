@@ -1,5 +1,5 @@
 import { HttpStatus, HttpException, Injectable } from '@nestjs/common';
-import { Between } from 'typeorm';
+import { Between, Not } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
@@ -13,12 +13,18 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 import { UsersFollower } from 'src/users-followers/entities/users-follower.entity';
 
-import { paginate, Pagination } from 'nestjs-typeorm-paginate';
+import { paginate } from 'nestjs-typeorm-paginate';
 
 @Injectable()
 export class UsersService {
   private readonly s3Client = new S3Client({
     region: this.configService.getOrThrow('AWS_S3_REGION'),
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+    endpoint: process.env.AWS_ENDPOINT,
+    forcePathStyle: true,
   });
 
   constructor(
@@ -52,13 +58,11 @@ export class UsersService {
       );
     }
 
-    await this.uploadFileS3(
-      image.originalname,
-      image.buffer,
-      'social-network-mobility-pro-teste',
-    );
+    const fileName = `users/photos_profile/${image.originalname}.png`;
 
-    const url_profile_photo = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${image.originalname}`;
+    await this.uploadFileS3(fileName, image.buffer, process.env.AWS_BUCKET);
+
+    const url_profile_photo = `${process.env.AWS_ENDPOINT}${process.env.AWS_BUCKET}/users/photos_profile/${image.originalname}.png`;
 
     const salt = await bcrypt.genSalt();
 
@@ -107,16 +111,18 @@ export class UsersService {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
 
+    const fileName = `users/photos_profile/${photo_profile.originalname}.png`;
+
     if (photo_profile) {
       await this.uploadFileS3(
-        photo_profile.originalname,
+        fileName,
         photo_profile.buffer,
-        'social-network-mobility-pro-teste',
+        process.env.AWS_BUCKET,
       );
     }
 
     const url_profile_photo = photo_profile
-      ? `https://social-network-mobility-pro-teste.s3.amazonaws.com/${photo_profile.originalname}`
+      ? `${process.env.AWS_ENDPOINT}${process.env.AWS_BUCKET}/users/photos_profile/${photo_profile.originalname}.png`
       : userFinded.photo_profile;
 
     if (updateUserDto.password) {
@@ -274,6 +280,7 @@ export class UsersService {
         'updated_at',
       ],
       where: {
+        id: Not(idUser),
         status: Users.active,
         created_at: Between(initDate, endDate),
       },

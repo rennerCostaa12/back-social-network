@@ -13,6 +13,12 @@ import { ConfigService } from '@nestjs/config';
 export class EmoticonsDriverService {
   private readonly s3Client = new S3Client({
     region: this.configService.getOrThrow('AWS_S3_REGION'),
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+    endpoint: process.env.AWS_ENDPOINT,
+    forcePathStyle: true,
   });
 
   constructor(
@@ -77,13 +83,15 @@ export class EmoticonsDriverService {
       );
     }
 
+    const fileNameEmoticonsDriver = `users/emoticons_driver/${imageDriver.originalname}.png`;
+
     await this.uploadFileS3(
-      imageDriver.originalname,
+      fileNameEmoticonsDriver,
       imageDriver.buffer,
-      'social-network-mobility-pro-teste',
+      process.env.AWS_BUCKET,
     );
 
-    const urlImgDriver = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${imageDriver.originalname}`;
+    const urlImgDriver = `${process.env.AWS_ENDPOINT}${process.env.AWS_BUCKET}/users/emoticons_driver/${imageDriver.originalname}.png`;
 
     const emoticonsDriver = this.emoticonsDriverRepository.create({
       ...createEmoticonsDriverDto,
@@ -168,13 +176,15 @@ export class EmoticonsDriverService {
     const responseAllCategories = await this.categoriesEmojiRepository.find();
     const responseAllEmojisByDriver = await this.emoticonsByUser(userId);
 
-    const missingCategories = responseAllCategories.filter((_, index) => !responseAllEmojisByDriver[index]);
+    const missingCategories = responseAllCategories.filter(
+      (_, index) => !responseAllEmojisByDriver[index],
+    );
 
     const allEmojiRegistered = missingCategories.length === 0;
 
     return {
       allEmojiRegistered,
-      missingCategories
+      missingCategories,
     };
   }
 }

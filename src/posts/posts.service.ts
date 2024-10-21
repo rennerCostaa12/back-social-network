@@ -21,6 +21,12 @@ import { PostsSave } from 'src/posts-saves/entities/posts-save.entity';
 export class PostsService {
   private readonly s3Client = new S3Client({
     region: this.configService.getOrThrow('AWS_S3_REGION'),
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    },
+    endpoint: process.env.AWS_ENDPOINT,
+    forcePathStyle: true,
   });
 
   constructor(
@@ -83,20 +89,23 @@ export class PostsService {
       );
     }
 
+    const fileNamePosts = `posts/videos/${img_picture[0].originalname}`;
+    const fileNameAudioPosts = `posts/audios_comments/${comment[0].originalname}`;
+
     await this.uploadFileS3(
-      img_picture[0].originalname,
+      fileNamePosts,
       img_picture[0].buffer,
-      'social-network-mobility-pro-teste',
+      process.env.AWS_BUCKET,
     );
 
     await this.uploadFileS3(
-      comment[0].originalname,
+      fileNameAudioPosts,
       comment[0].buffer,
-      'social-network-mobility-pro-teste',
+      process.env.AWS_BUCKET,
     );
 
-    const url_picture = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${img_picture[0].originalname}`;
-    const url_audio = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${comment[0].originalname}`;
+    const url_picture = `${process.env.AWS_ENDPOINT}${process.env.AWS_BUCKET}/posts/videos/${img_picture[0].originalname}`;
+    const url_audio = `${process.env.AWS_ENDPOINT}${process.env.AWS_BUCKET}/posts/audios_comments/${comment[0].originalname}`;
 
     const post = this.postRepository.create({
       ...createPostDto,
@@ -171,23 +180,26 @@ export class PostsService {
         );
       }
 
+      const fileNamePosts = `posts/videos/${picture[0].originalname}`;
+
       await this.uploadFileS3(
-        picture[0].originalname,
+        fileNamePosts,
         picture[0].buffer,
-        'social-network-mobility-pro-teste',
+        process.env.AWS_BUCKET,
       );
 
-      url_picture = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${picture[0].originalname}`;
+      url_picture = `${process.env.AWS_ENDPOINT}${process.env.AWS_BUCKET}/posts/videos/${picture[0].originalname}`;
     }
 
     if (comment) {
+      const fileNameAudioPosts = `posts/audios_comments/${comment[0].originalname}`;
       await this.uploadFileS3(
-        comment[0].originalname,
+        fileNameAudioPosts,
         comment[0].buffer,
-        'social-network-mobility-pro-teste',
+        process.env.AWS_BUCKET,
       );
 
-      url_audio = `https://social-network-mobility-pro-teste.s3.amazonaws.com/${comment[0].originalname}`;
+      url_audio = `${process.env.AWS_ENDPOINT}${process.env.AWS_BUCKET}/posts/audios_comments/${comment[0].originalname}`;
     }
 
     const postUpdated = this.postRepository.update(id, {
@@ -339,7 +351,7 @@ export class PostsService {
       .skip(offset)
       .take(limit)
       .getMany();
-      
+
     const listPostsFeed = query.map((response) => {
       return {
         id: response.id,
