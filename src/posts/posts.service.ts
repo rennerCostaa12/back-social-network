@@ -16,6 +16,8 @@ import { ValidationDurationVideo } from 'src/utils/ValidationsDurationVideo';
 import { UploadFileLocal } from 'src/utils/UploadFileLocal';
 import { Reaction } from 'src/reactions/entities/reaction.entity';
 import { PostsSave } from 'src/posts-saves/entities/posts-save.entity';
+import * as ffmpeg from 'fluent-ffmpeg';
+import * as ffprobeStatic from 'ffprobe-static';
 
 @Injectable()
 export class PostsService {
@@ -39,7 +41,9 @@ export class PostsService {
     @InjectRepository(PostsSave)
     private postsSaveRepository: Repository<PostsSave>,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    ffmpeg.setFfprobePath(ffprobeStatic.path);
+  }
 
   async uploadFileS3(fileName: string, file: Buffer, bucket: string) {
     return await this.s3Client.send(
@@ -77,7 +81,7 @@ export class PostsService {
       img_picture[0].originalname,
     );
     await UploadFileLocal(img_picture[0].buffer, localFilePath);
-
+    
     const responseDurationVideo = await ValidationDurationVideo(localFilePath);
 
     fs.unlinkSync(localFilePath);
