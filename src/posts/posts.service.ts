@@ -13,7 +13,7 @@ import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { ConfigService } from '@nestjs/config';
 
 import { ValidationDurationVideo } from 'src/utils/ValidationsDurationVideo';
-import { UploadFileLocal } from 'src/utils/UploadFileLocal';
+import { UploadFileLocal, getLocalFilePath } from 'src/utils/UploadFileLocal';
 import { Reaction } from 'src/reactions/entities/reaction.entity';
 import { PostsSave } from 'src/posts-saves/entities/posts-save.entity';
 import * as ffmpeg from 'fluent-ffmpeg';
@@ -75,11 +75,8 @@ export class PostsService {
       );
     }
 
-    const localFilePath = path.resolve(
-      __dirname,
-      '../tmp/uploads',
-      img_picture[0].originalname,
-    );
+    const localFilePath = getLocalFilePath(img_picture[0].originalname);
+
     await UploadFileLocal(img_picture[0].buffer, localFilePath);
     
     const responseDurationVideo = await ValidationDurationVideo(localFilePath);
@@ -165,11 +162,7 @@ export class PostsService {
     let url_audio: string = postFinded.comment;
 
     if (picture) {
-      const localFilePath = path.resolve(
-        __dirname,
-        '../tmp/uploads',
-        picture[0].originalname,
-      );
+      const localFilePath = getLocalFilePath(picture[0].originalname);
       await UploadFileLocal(picture[0].buffer, localFilePath);
 
       const responseDurationVideo =
